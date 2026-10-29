@@ -1,0 +1,85 @@
+---
+interface Props {
+  title: string;
+  url?: string;
+}
+
+const { title, url } = Astro.props;
+const encodedTitle = encodeURIComponent(title);
+---
+
+<div class="mt-12 pt-6 border-t border-[#e6e3da]">
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-xs text-[#78746a] not-prose">
+    <span class="font-semibold text-[#242220]">Compartir nota:</span>
+    <div class="flex items-center gap-2 flex-wrap">
+      <!-- WhatsApp -->
+      <a
+        id="share-whatsapp"
+        href={`https://api.whatsapp.com/send?text=${encodedTitle}%20${encodeURIComponent(url || '')}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        class="px-3 py-1.5 rounded bg-[#ece9df] hover:bg-[#e2ded2] text-[#242220] text-xs font-semibold transition"
+      >
+        WhatsApp
+      </a>
+
+      <!-- X / Twitter -->
+      <a
+        id="share-x"
+        href={`https://twitter.com/intent/tweet?text=${encodedTitle}&url=${encodeURIComponent(url || '')}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        class="px-3 py-1.5 rounded bg-[#ece9df] hover:bg-[#e2ded2] text-[#242220] text-xs font-semibold transition"
+      >
+        X
+      </a>
+
+      <!-- Copiar enlace -->
+      <button
+        id="copy-link-btn"
+        data-url={url}
+        class="px-3 py-1.5 rounded bg-[#ece9df] hover:bg-[#e2ded2] text-[#242220] text-xs font-semibold transition cursor-pointer"
+      >
+        <span id="copy-btn-text">Copiar enlace</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+  function setupShareButtons() {
+    const btn = document.getElementById('copy-link-btn');
+    const text = document.getElementById('copy-btn-text');
+    const waLink = document.getElementById('share-whatsapp') as HTMLAnchorElement | null;
+    const xLink = document.getElementById('share-x') as HTMLAnchorElement | null;
+
+    const currentUrl = btn?.getAttribute('data-url') || window.location.href;
+
+    if (waLink && !waLink.href.includes('http%3A') && !waLink.href.includes('https%3A')) {
+      const title = document.title;
+      waLink.href = `https://api.whatsapp.com/send?text=${encodeURIComponent(title)}%20${encodeURIComponent(window.location.href)}`;
+    }
+
+    if (xLink && !xLink.href.includes('url=http')) {
+      const title = document.title;
+      xLink.href = `https://twitter.com/intent/tweet?text=${encodeURIComponent(title)}&url=${encodeURIComponent(window.location.href)}`;
+    }
+
+    btn?.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(currentUrl);
+        if (text) {
+          text.textContent = '¡Copiado!';
+          setTimeout(() => {
+            text.textContent = 'Copiar enlace';
+          }, 2000);
+        }
+      } catch (err) {
+        console.error('Error al copiar', err);
+      }
+    });
+  }
+
+  setupShareButtons();
+  document.addEventListener('astro:page-load', setupShareButtons);
+</script>

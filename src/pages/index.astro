@@ -1,0 +1,101 @@
+---
+import { getCollection, render } from 'astro:content';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import ShareButtons from '../components/ShareButtons.astro';
+import CensoredBlock from '../components/CensoredBlock.astro';
+import { SITE_CONFIG } from '../config';
+
+const allPosts = (await getCollection('blog', ({ data }) => !data.draft))
+  .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
+
+const latestPost = allPosts.length > 0 ? allPosts[0] : null;
+const postSummaryList = allPosts.map((p) => ({
+  id: p.id,
+  title: p.data.title,
+  pubDate: p.data.pubDate,
+  tags: p.data.tags || [],
+}));
+
+let ContentComponent = null;
+let readingTime = '1 min de lectura';
+if (latestPost) {
+  const rendered = await render(latestPost);
+  ContentComponent = rendered.Content;
+
+  const words = (latestPost.body || '').replace(/<[^>]*>/g, '').trim().split(/\s+/).filter(Boolean).length;
+  const minutes = Math.max(1, Math.ceil(words / 160));
+  readingTime = `${minutes} min de lectura`;
+}
+
+function formatDate(date: Date) {
+  return new Intl.DateTimeFormat('es-ES', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  }).format(date);
+}
+---
+
+<BaseLayout
+  title={latestPost ? latestPost.data.title : SITE_CONFIG.title}
+  description={latestPost ? latestPost.data.description : SITE_CONFIG.description}
+  image={latestPost?.data.image}
+  currentPostId={latestPost?.id}
+  posts={postSummaryList}
+>
+  {latestPost && ContentComponent ? (
+    <article class="p-6 sm:p-10 lg:p-12">
+      <!-- Metadatos de la entrada con doble filete editorial -->
+      <header class="mb-8 border-b-4 border-double border-[#d6d1c4] pb-6">
+        <div class="flex items-center gap-2 text-xs text-[#78746a] mb-3 font-medium">
+          <time datetime={latestPost.data.pubDate.toISOString()}>
+            {formatDate(latestPost.data.pubDate)}
+          </time>
+          <span class="text-[#c7c2b5]">•</span>
+          <span class="inline-flex items-center gap-1 text-[#6e6a61]">
+            <svg class="w-3.5 h-3.5 text-[#8a857b]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="9" stroke-width="2"></circle>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 7v5l3 3"></path>
+            </svg>
+            <span>{readingTime}</span>
+          </span>
+        </div>
+
+        <h1 class="text-3xl sm:text-4xl lg:text-5xl font-serif font-black text-[#1e1c1a] leading-[1.15] mb-4">
+          {latestPost.data.title}
+        </h1>
+
+        {latestPost.data.description && (
+          <p class="text-lg sm:text-xl font-serif italic text-[#5c574c] leading-relaxed font-normal pt-1">
+            {latestPost.data.description}
+          </p>
+        )}
+      </header>
+
+      <!-- Imagen recta limpia -->
+      {latestPost.data.image && (
+        <div class="mb-10 overflow-hidden">
+          <img
+            src={latestPost.data.image}
+            alt={latestPost.data.title}
+            class="w-full aspect-[16/10] object-cover"
+            loading="eager"
+          />
+        </div>
+      )}
+
+      <!-- Cuerpo del artículo -->
+      <div class="article-body prose max-w-none text-[#2c2926] font-sans text-base sm:text-lg prose-headings:font-serif prose-headings:font-bold prose-headings:text-[#1e1c1a] prose-a:text-[#1e1c1a] prose-a:underline hover:text-[#5c5850]">
+        <ContentComponent components={{ CensoredBlock }} />
+      </div>
+
+      <!-- Botones de compartir -->
+      <ShareButtons title={latestPost.data.title} />
+    </article>
+  ) : (
+    <div class="p-12 text-center py-20">
+      <h2 class="text-2xl font-serif font-bold text-[#1e1c1a] mb-2">Bienvenido a {SITE_CONFIG.title}</h2>
+      <p class="text-[#78746a] text-sm mb-6">Aún no hay entradas publicadas.</p>
+    </div>
+  )}
+</BaseLayout>

@@ -1,0 +1,78 @@
+---
+interface Props {
+  secret: string;
+  hint?: string;
+}
+
+const { secret, hint = "Escribe el código..." } = Astro.props;
+---
+
+<div class="censored-block relative my-8 select-none not-prose" data-secret={secret}>
+  <!-- Contenido borroso -->
+  <div class="censored-text blur-sm text-[#4a463e] pointer-events-none transition-all duration-300 p-2">
+    <slot />
+  </div>
+
+  <!-- Overlay para desbloquear -->
+  <div class="censored-overlay absolute inset-0 flex items-center justify-center bg-[#1e1c1a]/10 backdrop-blur-xs rounded transition-opacity">
+    <div class="flex items-center gap-1.5 bg-[#fcfbf9]/95 backdrop-blur-md px-3.5 py-1.5 rounded-full shadow-md border border-[#d6d1c4]">
+      <input
+        type="text"
+        placeholder={hint}
+        class="code-input text-xs px-2 py-1 bg-transparent text-[#1e1c1a] placeholder:text-[#948f85] focus:outline-none w-36 font-medium text-center"
+      />
+      <button
+        type="button"
+        class="unlock-btn px-3 py-1 bg-[#1e1c1a] hover:bg-[#38342f] text-[#fcfbf9] text-xs font-semibold rounded-full transition cursor-pointer shrink-0"
+      >
+        Desbloquear
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+  function setupCensoredBlocks() {
+    document.querySelectorAll<HTMLElement>('.censored-block').forEach((block) => {
+      if (block.getAttribute('data-initialized') === 'true') return;
+      block.setAttribute('data-initialized', 'true');
+
+      const secret = (block.getAttribute('data-secret') || '').toLowerCase().trim();
+      const text = block.querySelector<HTMLElement>('.censored-text');
+      const overlay = block.querySelector<HTMLElement>('.censored-overlay');
+      const input = block.querySelector<HTMLInputElement>('.code-input');
+      const btn = block.querySelector<HTMLButtonElement>('.unlock-btn');
+
+      function tryUnlock() {
+        if (!input || !text) return;
+        const entered = input.value.toLowerCase().trim();
+
+        if (entered === secret) {
+          text.classList.remove('blur-sm', 'pointer-events-none');
+          block.classList.remove('select-none');
+          if (overlay) overlay.style.display = 'none';
+        } else {
+          input.classList.add('ring-2', 'ring-red-500');
+          input.placeholder = 'Código incorrecto';
+          input.value = '';
+          setTimeout(() => {
+            input.classList.remove('ring-2', 'ring-red-500');
+            input.placeholder = 'Escribe el código...';
+          }, 1200);
+          input.focus();
+        }
+      }
+
+      btn?.addEventListener('click', tryUnlock);
+      input?.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          tryUnlock();
+        }
+      });
+    });
+  }
+
+  setupCensoredBlocks();
+  document.addEventListener('astro:page-load', setupCensoredBlocks);
+</script>

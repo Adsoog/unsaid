@@ -1,0 +1,418 @@
+---
+import { SITE_CONFIG } from '../config';
+
+interface PostItem {
+  id: string;
+  title: string;
+  pubDate: Date;
+  tags?: string[];
+}
+
+interface Props {
+  posts: PostItem[];
+  currentPostId?: string;
+}
+
+const { posts, currentPostId } = Astro.props;
+
+function formatShortDate(date: Date) {
+  return new Intl.DateTimeFormat('es-ES', {
+    day: 'numeric',
+    month: 'short',
+  }).format(date);
+}
+
+const allTags = Array.from(new Set(posts.flatMap((p) => p.tags || []))).sort();
+---
+
+<!-- ========================================== -->
+<!-- 1. BARRA SUPERIOR PARA CELULAR (Mobile Top Bar) -->
+<!-- ========================================== -->
+<header class="lg:hidden sticky top-0 z-40 bg-[#fcfbf9]/95 backdrop-blur-md border-b border-[#e6e3da] px-4 py-3 flex items-center justify-between w-full shadow-xs">
+  <a href="/" class="flex flex-col">
+    <span class="text-xl font-serif font-bold tracking-tight text-[#1e1c1a] leading-none">
+      {SITE_CONFIG.title}
+    </span>
+    <span class="text-[10px] text-[#78746a] italic mt-0.5 truncate max-w-[200px]">
+      {SITE_CONFIG.tagline}
+    </span>
+  </a>
+
+  <!-- Botón de apertura del menú -->
+  <button
+    id="open-mobile-menu"
+    type="button"
+    aria-label="Abrir menú y entradas"
+    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-[#1e1c1a] text-[#fcfbf9] text-xs font-semibold hover:bg-[#38342f] transition active:scale-95 cursor-pointer"
+  >
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+    </svg>
+    <span>Entradas</span>
+  </button>
+</header>
+
+<!-- ========================================== -->
+<!-- 2. DRAWER DESPLEGABLE EN CELULAR (Modal Drawer) -->
+<!-- ========================================== -->
+<div id="mobile-drawer-backdrop" class="fixed inset-0 bg-black/40 backdrop-blur-xs z-50 hidden transition-opacity lg:hidden">
+  <div id="mobile-drawer-panel" class="fixed inset-y-0 left-0 w-[85%] max-w-xs bg-[#fcfbf9] shadow-2xl flex flex-col h-full z-50 border-r border-[#e6e3da]">
+    <!-- Cabecera del drawer móvil -->
+    <div class="p-5 border-b border-[#e6e3da] flex items-center justify-between">
+      <div>
+        <h2 class="text-xl font-serif font-bold text-[#1e1c1a]">{SITE_CONFIG.title}</h2>
+        <p class="text-[10px] text-[#78746a] italic">{SITE_CONFIG.tagline}</p>
+      </div>
+      <button
+        id="close-mobile-menu"
+        class="p-1.5 rounded-md text-[#78746a] hover:text-[#1e1c1a] hover:bg-[#ebe8de] cursor-pointer"
+        aria-label="Cerrar menú"
+      >
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Contenido con scroll independiente -->
+    <div class="flex-1 overflow-y-auto p-4 space-y-4">
+      <!-- Buscador móvil -->
+      <div>
+        <div class="flex items-center justify-between mb-1.5">
+          <label for="search-input-mobile" class="text-[10px] font-bold uppercase tracking-wider text-[#8a857b]">
+            Buscar o filtrar
+          </label>
+          <button id="reset-search-mobile" class="text-[10px] text-[#5c5850] hover:underline hidden font-medium cursor-pointer">
+            Ver todas
+          </button>
+        </div>
+        <input
+          type="text"
+          id="search-input-mobile"
+          placeholder="Buscar por tag o título..."
+          class="w-full py-1.5 px-3 bg-[#f4f2ec] border border-[#d6d1c4] rounded-md text-xs text-[#242220] placeholder:text-[#948f85] focus:outline-none focus:border-[#242220]"
+        />
+        <!-- Tags pills móvil -->
+        {allTags.length > 0 && (
+          <div class="flex flex-wrap gap-1 mt-2">
+            {allTags.map((t) => (
+              <button
+                type="button"
+                data-tag={t}
+                class="tag-pill-mobile text-[10px] px-2 py-0.5 rounded bg-[#ebe8de] text-[#635f56] hover:bg-[#242220] hover:text-[#fcfbf9] transition cursor-pointer"
+              >
+                #{t}
+              </button>
+            ))}
+          </div>
+        )}
+        <p id="search-feedback-mobile" class="text-[11px] text-[#78746a] mt-1.5 hidden"></p>
+      </div>
+
+      <!-- Lista móvil de entradas -->
+      <div>
+        <div class="border-b border-[#e6e3da] pb-2 mb-3 flex justify-between items-center">
+          <span class="text-[11px] font-bold uppercase tracking-wider text-[#8a857b]">Todas las entradas</span>
+          <span class="text-[11px] text-[#8a857b]">{posts.length} notas</span>
+        </div>
+        <ul class="space-y-3.5">
+          {posts.map((post) => (
+            <li
+              data-tags={(post.tags || []).join(',').toLowerCase()}
+              data-title={post.title.toLowerCase()}
+              data-post-id={post.id}
+              class="post-nav-item-mobile group flex items-start gap-2.5 transition-colors"
+            >
+              <span class={`mobile-post-dot mt-1.5 w-1.5 h-1.5 rounded-full shrink-0 transition-all ${post.id === currentPostId ? 'bg-[#1e1c1a] scale-125' : 'bg-[#d6d1c4]'}`}></span>
+              <a href={`/blog/${post.id}`} class="block flex-1 min-w-0">
+                <time class="text-[10px] uppercase tracking-wider text-[#8a857b] block mb-0.5">
+                  {formatShortDate(post.pubDate)}
+                </time>
+                <span class={`mobile-post-title text-xs font-semibold leading-snug line-clamp-2 ${post.id === currentPostId ? 'text-[#1e1c1a] font-bold' : 'text-[#4a463e]'}`}>
+                  {post.title}
+                </span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+
+    <!-- Enlace al portafolio en móvil (pie del drawer) -->
+    <div class="p-4 border-t border-[#e6e3da] bg-[#faf8f5]">
+      <a
+        href={SITE_CONFIG.portfolioUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        class="flex items-center justify-between text-xs font-semibold text-[#242220] hover:text-[#1e1c1a] p-2.5 rounded-lg bg-[#ebe8de] transition"
+      >
+        <span class="flex items-center gap-2">
+          <svg class="w-4 h-4 text-[#78746a]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+          </svg>
+          <span>Visitar Portafolio</span>
+        </span>
+        <svg class="w-4 h-4 text-[#8a857b]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+        </svg>
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- ========================================== -->
+<!-- 3. BARRA LATERAL PARA ESCRITORIO (Siempre fija: self-start sticky top-0) -->
+<!-- ========================================== -->
+<aside
+  transition:persist="desktop-sidebar"
+  class="hidden lg:flex flex-col w-72 xl:w-80 shrink-0 self-start sticky top-0 h-screen overflow-y-auto py-8 px-4"
+>
+  <!-- Título y Marca del Blog -->
+  <div class="border-b border-[#e6e3da] pb-6 mb-6">
+    <a href="/" class="group block">
+      <h1 class="text-3xl xl:text-4xl font-serif font-bold tracking-tight text-[#1e1c1a] group-hover:text-[#5c5850] transition-colors">
+        {SITE_CONFIG.title}
+      </h1>
+      <p class="text-xs text-[#78746a] italic mt-2 leading-relaxed">
+        {SITE_CONFIG.tagline}
+      </p>
+    </a>
+  </div>
+
+  <!-- Buscador interactivo por Tag o Título -->
+  <div class="mb-6">
+    <div class="flex items-center justify-between mb-2">
+      <label for="search-input" class="text-[11px] font-bold uppercase tracking-wider text-[#8a857b]">
+        Buscar por tag
+      </label>
+      <button id="reset-search-btn" class="text-[11px] text-[#5c5850] hover:underline hidden font-medium cursor-pointer">
+        Ver todas
+      </button>
+    </div>
+    <div class="relative">
+      <input
+        type="text"
+        id="search-input"
+        placeholder="Escribe o elige un tag..."
+        class="w-full py-1.5 pl-8 pr-3 bg-[#fcfbf9] border border-[#d6d1c4] rounded-md text-xs text-[#242220] placeholder:text-[#948f85] focus:outline-none focus:border-[#242220]"
+      />
+      <svg class="w-3.5 h-3.5 text-[#8a857b] absolute left-2.5 top-2.5 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+      </svg>
+    </div>
+
+    <!-- Nube rápida de tags clickeables -->
+    {allTags.length > 0 && (
+      <div class="flex flex-wrap gap-1.5 mt-2.5">
+        {allTags.map((t) => (
+          <button
+            type="button"
+            data-tag={t}
+            class="tag-pill text-[10px] px-2 py-0.5 rounded bg-[#ebe8de] text-[#635f56] hover:bg-[#242220] hover:text-[#fcfbf9] transition cursor-pointer font-medium"
+          >
+            #{t}
+          </button>
+        ))}
+      </div>
+    )}
+    <p id="search-feedback" class="text-[11px] text-[#78746a] mt-2 hidden"></p>
+  </div>
+
+  <!-- Índice de Entradas (Escritorio) -->
+  <div class="flex-1 overflow-y-auto">
+    <div class="flex items-center justify-between border-b border-[#e6e3da] pb-2 mb-4">
+      <h2 class="text-[11px] font-bold uppercase tracking-wider text-[#8a857b]">
+        Entradas
+      </h2>
+      <span id="posts-counter" class="text-[11px] text-[#8a857b] font-medium">
+        {posts.length} notas
+      </span>
+    </div>
+
+    <ul id="posts-nav-list" class="space-y-4">
+      {posts.map((post) => (
+        <li
+          data-tags={(post.tags || []).join(',').toLowerCase()}
+          data-title={post.title.toLowerCase()}
+          data-post-id={post.id}
+          class="post-nav-item group flex items-start gap-2.5 transition-colors"
+        >
+          <!-- Punto redondo indicador -->
+          <span class="post-dot mt-1.5 w-1.5 h-1.5 rounded-full shrink-0 transition-all bg-[#d6d1c4] group-hover:bg-[#8a857b]"></span>
+
+          <a href={`/blog/${post.id}`} class="block flex-1 min-w-0">
+            <time class="text-[10px] uppercase tracking-wider text-[#8a857b] block mb-0.5">
+              {formatShortDate(post.pubDate)}
+            </time>
+            <span class="desktop-post-title text-xs font-semibold leading-snug line-clamp-2 transition-colors text-[#4a463e] group-hover:text-[#1e1c1a]">
+              {post.title}
+            </span>
+          </a>
+        </li>
+      ))}
+    </ul>
+  </div>
+
+  <!-- Enlace Limpio al Portafolio en el Pie -->
+  <nav class="pt-6 mt-6 border-t border-[#e6e3da] text-xs">
+    <a
+      href={SITE_CONFIG.portfolioUrl}
+      target="_blank"
+      rel="noopener noreferrer"
+      class="inline-flex items-center justify-between w-full p-2.5 rounded-lg bg-[#ebe8de] hover:bg-[#e2ded2] text-[#242220] hover:text-[#1e1c1a] transition font-medium group"
+    >
+      <span class="flex items-center gap-2">
+        <svg class="w-4 h-4 text-[#78746a] group-hover:text-[#1e1c1a]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+        </svg>
+        <span>Mi Portafolio</span>
+      </span>
+      <svg class="w-3.5 h-3.5 text-[#8a857b] group-hover:text-[#1e1c1a] transform group-hover:translate-x-0.5 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+      </svg>
+    </a>
+  </nav>
+</aside>
+
+<script>
+  function setupDrawerAndListeners() {
+    const backdrop = document.getElementById('mobile-drawer-backdrop');
+
+    // Manejo de eventos con delegación global (infalible en móvil)
+    document.addEventListener('click', (e) => {
+      const target = e.target as HTMLElement | null;
+      if (!target) return;
+
+      // Abrir menú
+      if (target.closest('#open-mobile-menu')) {
+        backdrop?.classList.remove('hidden');
+      }
+
+      // Cerrar menú
+      if (target.closest('#close-mobile-menu') || target === backdrop || target.closest('.post-nav-item-mobile a')) {
+        backdrop?.classList.add('hidden');
+      }
+    });
+
+    // Buscador por Tag y Título (Desktop y Móvil)
+    function setupSearch(
+      inputId: string,
+      resetBtnId: string,
+      feedbackId: string,
+      itemSelector: string,
+      tagPillSelector: string
+    ) {
+      const input = document.getElementById(inputId) as HTMLInputElement | null;
+      const resetBtn = document.getElementById(resetBtnId);
+      const feedback = document.getElementById(feedbackId);
+      const items = document.querySelectorAll<HTMLElement>(itemSelector);
+      const tagPills = document.querySelectorAll<HTMLElement>(tagPillSelector);
+
+      if (!input || items.length === 0) return;
+
+      function filter(query: string) {
+        const clean = query.trim().toLowerCase().replace(/^#/, '');
+        if (!clean) {
+          items.forEach((it) => (it.style.display = 'flex'));
+          if (resetBtn) resetBtn.classList.add('hidden');
+          if (feedback) feedback.classList.add('hidden');
+          return;
+        }
+
+        let count = 0;
+        items.forEach((item) => {
+          const tags = item.getAttribute('data-tags') || '';
+          const title = item.getAttribute('data-title') || '';
+          const match = tags.includes(clean) || title.includes(clean);
+          if (match) {
+            item.style.display = 'flex';
+            count++;
+          } else {
+            item.style.display = 'none';
+          }
+        });
+
+        if (resetBtn) resetBtn.classList.remove('hidden');
+        if (feedback) {
+          feedback.classList.remove('hidden');
+          if (count > 0) {
+            feedback.textContent = `${count} nota(s) encontrada(s).`;
+            feedback.classList.remove('text-red-500');
+          } else {
+            feedback.textContent = 'Sin notas para esa búsqueda.';
+            feedback.classList.add('text-red-500');
+          }
+        }
+      }
+
+      input.oninput = () => filter(input.value);
+
+      tagPills.forEach((pill) => {
+        pill.onclick = () => {
+          const tag = pill.getAttribute('data-tag') || '';
+          input.value = `#${tag}`;
+          filter(tag);
+        };
+      });
+
+      if (resetBtn) {
+        resetBtn.onclick = () => {
+          input.value = '';
+          filter('');
+        };
+      }
+    }
+
+    setupSearch('search-input', 'reset-search-btn', 'search-feedback', '.post-nav-item', '.tag-pill');
+    setupSearch('search-input-mobile', 'reset-search-mobile', 'search-feedback-mobile', '.post-nav-item-mobile', '.tag-pill-mobile');
+
+    // Resaltar entrada activa según URL actual
+    const path = window.location.pathname.replace(/\/$/, '');
+    const currentSlug = path.startsWith('/blog/') ? path.replace('/blog/', '') : '';
+
+    // Desktop
+    document.querySelectorAll<HTMLElement>('.post-nav-item').forEach((item, index) => {
+      const postId = item.getAttribute('data-post-id');
+      const dot = item.querySelector('.post-dot');
+      const title = item.querySelector('.desktop-post-title');
+      const isFirstAndHome = path === '' || path === '/' ? index === 0 : false;
+      const isActive = postId === currentSlug || isFirstAndHome;
+
+      if (isActive) {
+        dot?.classList.remove('bg-[#d6d1c4]', 'group-hover:bg-[#8a857b]');
+        dot?.classList.add('bg-[#1e1c1a]', 'scale-125');
+        title?.classList.remove('text-[#4a463e]');
+        title?.classList.add('text-[#1e1c1a]', 'font-bold');
+      } else {
+        dot?.classList.remove('bg-[#1e1c1a]', 'scale-125');
+        dot?.classList.add('bg-[#d6d1c4]', 'group-hover:bg-[#8a857b]');
+        title?.classList.remove('text-[#1e1c1a]', 'font-bold');
+        title?.classList.add('text-[#4a463e]');
+      }
+    });
+
+    // Mobile
+    document.querySelectorAll<HTMLElement>('.post-nav-item-mobile').forEach((item, index) => {
+      const postId = item.getAttribute('data-post-id');
+      const dot = item.querySelector('.mobile-post-dot');
+      const title = item.querySelector('.mobile-post-title');
+      const isFirstAndHome = path === '' || path === '/' ? index === 0 : false;
+      const isActive = postId === currentSlug || isFirstAndHome;
+
+      if (isActive) {
+        dot?.classList.remove('bg-[#d6d1c4]');
+        dot?.classList.add('bg-[#1e1c1a]', 'scale-125');
+        title?.classList.remove('text-[#4a463e]');
+        title?.classList.add('text-[#1e1c1a]', 'font-bold');
+      } else {
+        dot?.classList.remove('bg-[#1e1c1a]', 'scale-125');
+        dot?.classList.add('bg-[#d6d1c4]');
+        title?.classList.remove('text-[#1e1c1a]', 'font-bold');
+        title?.classList.add('text-[#4a463e]');
+      }
+    });
+  }
+
+  setupDrawerAndListeners();
+  document.addEventListener('astro:page-load', setupDrawerAndListeners);
+</script>

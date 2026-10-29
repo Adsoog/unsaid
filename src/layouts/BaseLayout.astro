@@ -1,0 +1,90 @@
+---
+import { ClientRouter } from 'astro:transitions';
+import Sidebar from '../components/Sidebar.astro';
+import { SITE_CONFIG } from '../config';
+import '../styles/global.css';
+
+interface Props {
+  title?: string;
+  description?: string;
+  image?: string;
+  currentPostId?: string;
+  posts: Array<{
+    id: string;
+    title: string;
+    pubDate: Date;
+    tags?: string[];
+  }>;
+}
+
+const {
+  title = SITE_CONFIG.title,
+  description = SITE_CONFIG.description,
+  image = '/images/og-default.jpg',
+  currentPostId,
+  posts,
+} = Astro.props;
+
+const pageTitle = title === SITE_CONFIG.title ? title : `${title} | ${SITE_CONFIG.title}`;
+const canonicalURL = new URL(Astro.url.pathname, Astro.site || SITE_CONFIG.siteUrl);
+---
+
+<!doctype html>
+<html lang="es" class="scroll-smooth bg-[#f4f2ec]">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="canonical" href={canonicalURL} />
+    <meta name="generator" content={Astro.generator} />
+
+    <!-- Google Fonts: Playfair Display (Serif) + Plus Jakarta Sans (Sans-serif) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;0,900;1,400;1,600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <title>{pageTitle}</title>
+    <meta name="description" content={description} />
+    <meta name="robots" content="index, follow, max-image-preview:large" />
+
+    <!-- Open Graph / Redes Sociales -->
+    <meta property="og:type" content="article" />
+    <meta property="og:url" content={canonicalURL} />
+    <meta property="og:title" content={pageTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content={image} />
+    <meta property="og:site_name" content={SITE_CONFIG.title} />
+    <meta property="og:locale" content="es_ES" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={pageTitle} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={image} />
+
+    <!-- Astro View Transitions (Navegación SPA) -->
+    <ClientRouter fallback="animate" />
+  </head>
+
+  <body class="bg-[#f4f2ec] text-[#242220] min-h-screen font-sans antialiased selection:bg-[#e4dfd3] selection:text-[#181614]">
+    <div class="max-w-6xl mx-auto px-0 sm:px-6">
+      <!-- Layout: Barra lateral fija + Columna central recta que usa todo el alto -->
+      <div class="flex flex-col lg:flex-row gap-0 lg:gap-10 min-h-screen">
+        <!-- Barra lateral (permanente, no se recarga al navegar) -->
+        <Sidebar posts={posts} currentPostId={currentPostId} />
+
+        <!-- Columna Central Recta (Todo el alto con textura auténtica de papel físico) -->
+        <main
+          transition:name="main-reading-column"
+          transition:animate="fade"
+          class="flex-1 max-w-2xl w-full min-w-0 paper-column border-x border-[#e6e3da] min-h-screen"
+        >
+          <slot />
+        </main>
+      </div>
+    </div>
+  </body>
+</html>
